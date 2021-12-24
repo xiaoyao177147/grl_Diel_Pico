@@ -4,7 +4,7 @@
 
 * Field_SCS.R: R script for Fig. 1 (the field study in the northern SCS) and Table S3 of the paper;
 
-* model.R: R script for Fig. 3 (A simple model simulating the daily patterns of cell numbers, cell size, and biomass of Prochlorococcus) of the paper;
+* model.R: R script for Fig. 3 (A simple model simulating the daily patterns of Prochlorococcus) of the paper;
 
 * Table_S1.R: R script for Table S1 of the paper;
 
