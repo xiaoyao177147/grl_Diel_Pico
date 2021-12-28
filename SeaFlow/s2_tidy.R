@@ -301,7 +301,7 @@
                 (cruise == "Tokyo_3"& time > ymd_hms("2011-09-25 12:02:00")  & time < ymd_hms("2011-09-30 07:32:00")) ))
     
     
-    # Pro value of cruise KM1709 is a mixture of two groups, one is ~200 and the other is ~150; group 2 to NA.
+    # Pro value of cruise KM1709 is a mixture of two groups, one is ~200 and the other is ~150; the latter to NA.
     KM1709 <- dat1 %>% 
       filter(cruise == "KM1709") %>% 
       mutate(pr_abu = predict(loess(Abu_Pro ~ as.numeric(time), span = 0.1))) 
