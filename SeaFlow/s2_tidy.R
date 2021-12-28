@@ -392,9 +392,7 @@
                 (cruise == "SR1917"    &(time < ymd_hms("2019-11-07 07:40:00") | time > ymd_hms("2019-11-26 02:34:00")))|
                 (cruise == "TN271"     &(time < ymd_hms("2011-10-28 21:20:00") | time > ymd_hms("2011-11-02 21:30:00")))|
                 (cruise == "TN292"     & time < ymd_hms("2013-03-09 21:16:00")))) %>% 
-      filter(!(cruise %in% c("MGL1704", "Tokyo_3"))) # after filter, some data is rather short,
-    # and with incomplete period (lot of gaps), or still very irregular, delete!
-    
+      filter(!(cruise %in% c("MGL1704", "Tokyo_3"))) # After data cleaning (ii) and (iii), data of the two cruises is very short    
     
     
     # removed some obvious outliers.
