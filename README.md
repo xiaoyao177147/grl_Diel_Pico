@@ -36,7 +36,7 @@
 
 ## SeaFlow
 
-R scripts (4 steps) and data (SeaFlow data v1.3 http://doi.org/10.5281/zenodo.2678021 and SCS data) for Fig. 2 and Fig. S8--S10 of the paper;
+R scripts (4 steps) and data (SeaFlow data v1.3 http://doi.org/10.5281/zenodo.2678021 and SCS data) for Fig. 2 of the paper;
 
 ### Data 
 
