@@ -349,13 +349,13 @@
 
     i = 1;
     dat1_check1 <- dat1_check %>% filter(cruise == Icruise [i]); i = i + 1
-
+    
     # (iii) Dramatic fluctuations in the abundance of Synechococcus or picoeukaryotes.
     # We speculated that the dramatic fluctuation might arise from instrument malfunction or the passage into a distinctly different water mass.
     # We defined the condition of dramatic fluctuation as that the abundance of Synechococcus or picoeukaryotes changed more than 5 times within 12 hours.
     # However, most of the excluded time periods were longer than the duration with five times change, and they were determined by comprehensively 
     # considering the time series variations of the three parameters (abundance, cell size, and biomass) of three picophytoplankton populations.
-
+    
     dat2 <- dat1 %>% 
       filter(!( (cruise == "CN11ID"    &(time < ymd_hms("2011-10-03 19:20:00") | time > ymd_hms("2011-10-06 07:33:00")))|
                 (cruise == "FK180310-1"& time > ymd_hms("2018-03-23 03:57:00"))|
@@ -397,7 +397,7 @@
                 (cruise == "SR1917"    &(time < ymd_hms("2019-11-07 07:40:00") | time > ymd_hms("2019-11-26 02:34:00")))|
                 (cruise == "TN271"     &(time < ymd_hms("2011-10-28 21:20:00") | time > ymd_hms("2011-11-02 21:30:00")))|
                 (cruise == "TN292"     & time < ymd_hms("2013-03-09 21:16:00")))) %>% 
-      filter(!(cruise %in% c("MGL1704", "Tokyo_3"))) # After data cleaning (ii) and (iii), data of the two cruises is very short    
+      filter(!(cruise %in% c("MGL1704", "Tokyo_3"))) # After data cleaning (ii) and (iii), data of the two cruises is very short
     
     
     # removed some obvious outliers.
