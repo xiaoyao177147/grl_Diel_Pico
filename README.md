@@ -74,7 +74,7 @@ other attached packages:
 [17] data.table_1.14.2    ggpubr_0.4.0         scales_1.1.1         egg_0.4.5           
 [21] ggplot2_3.3.5        gridExtra_2.3        lemon_0.4.5          patchwork_1.1.1     
 [25] cowplot_1.1.1        gtable_0.3.0         plyr_1.8.6           investr_1.4.0       
-[29] basicTrendline_2.0.5
+[29] basicTrendline_2.0.5 forecast_8.15
 
 loaded via a namespace (and not attached):
  [1] Rcpp_1.0.7       mvtnorm_1.1-2    lattice_0.20-45  assertthat_0.2.1 utf8_1.2.2      
