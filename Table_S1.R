@@ -1,7 +1,7 @@
     rm(list = ls())
     library(lubridate);library(tidyverse); 
     
-    Auto <- read_csv("Data/Picoauto.csv") %>% drop_na(Pro) 
+    Auto <- read_csv("Data/Picoauto.csv") #%>% drop_na(Pro) 
     bac_virus <- read_csv("Data/Bac_virus.csv")
     
     bac_virus %>% count(Id, Id1) %>% filter(n > 1)
