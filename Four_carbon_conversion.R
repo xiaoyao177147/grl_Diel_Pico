@@ -1,6 +1,6 @@
   # Four approaches were used for carbon/biomass conversion.
 
-    library(ggpubr); library(scales); library(lubridate); library(tidyverse); library(lemon);
+    library(lubridate); library(tidyverse); library(ggpubr); library(scales); library(lemon);
     
     #' FSC to size, then biovolume and carbon per cell (equation parameters refer to Calibration_FSC.R)
     #' 
@@ -73,16 +73,17 @@
                    values_to = "biomass") %>% 
       drop_na(biomass) %>% 
       group_by(Station, pico, equation, Id) %>% 
-      mutate(u = mean(biomass), SD = sd(biomass)) %>% 
+      summarise(Time = mean(Time), u = mean(biomass), SD = sd(biomass)) %>% 
       mutate(pico = factor(pico, levels = c("Pro","Syn","Peuk")),
-             Station = factor(Station, levels = c("SEATS","M4","K11")))
-      
-
-    # use station SEATS for night-time: 20190620-21
-    Night1 <- ymd_hms(c("2019-06-19 18:53:33", "2019-06-20 18:53:47",
-                        "2019-06-21 18:54:01", "2019-06-22 18:54:14"));
-    Night2 <- ymd_hms(c("2019-06-20 05:41:11", "2019-06-21 05:41:24",
-                        "2019-06-22 05:41:37", "2019-06-23 05:41:51"));
+             Station = factor(Station, levels = c("SEATS","M4","K11")),
+             equation = factor(equation, levels = c("c280", "log", "e0.433", "e0.261")))
+    
+    library(suncalc) # Get Sunlight times # use station SEATS for night-time
+    # The sampling area is located in time zone 8
+    Sun <- getSunlightTimes(as.Date(c("2019-06-19", "2019-06-20", "2019-06-21", "2019-06-22", "2019-06-23")),
+                            keep = c("sunrise", "sunset"), lat = 18, lon = 116)
+    Night1 <- Sun$sunset[-5] + 8 * 3600
+    Night2 <- Sun$sunrise[-1]+ 8 * 3600
     
     lab.b   <- c(Pro = "Prochlorococcus",Syn = "Synechococcus",Peuk = "Picoeukaryotes") 
     Icolor <- c("#ee7e32","#1471b8","#6f3996","#1fb050") 
@@ -104,18 +105,23 @@
                       legend.key.height = unit(0.24, "cm"),
                       legend.spacing.x  = unit(0.25, 'cm')))
     
-    ggplot(Pico, aes(Time, biomass, colour = Station, shape = equation)) + 
+    library(ggh4x)
+    ggplot(Pico, aes(Time, u, colour = equation)) +
       annotate("rect", xmin = Night1, xmax = Night2, ymin = -Inf, ymax = Inf, alpha = .4, fill = "gray") +
-      geom_line(stat = "summary", fun = mean, size=.5) +
-      stat_summary(fun.data = 'mean_sd', geom = "errorbar", width=2400, size = .2,color="black") +
-      geom_point(stat = "summary", fun = mean,  size =1.5) +
-      scale_x_datetime(breaks = seq(ymd_hms("2019-06-20 06:00:00"), ymd_hms("2019-06-22 18:00:00"), 
+      geom_line(size=.3) +
+      geom_errorbar(aes(ymin = u - SD, ymax = u + SD), width=2400, size = .2, color="black") +
+      geom_point(size =.7) +
+      scale_x_datetime(breaks = seq(ymd_hms("2019-06-20 06:00:00"), ymd_hms("2019-06-22 18:00:00"),
                                     "6 hours"), labels = date_format("%H")) +
       xlab(NULL) +  ylab(NULL) +
       labs(title = "Biomass (µg C L-1) was estimated using four different approaches") +
-      facet_rep_grid(pico~Station,scales = "free_y",labeller=labeller(pico = as_labeller(lab.b)))+
+      facet_grid2(vars(pico), vars(Station), 
+                  scales = "free", independent = "y",
+                  axes = "all", remove_labels = "x",
+                  labeller=labeller(pico = as_labeller(lab.b))) +
       coord_cartesian(xlim = c(ymd_hms("2019-06-20 06:50:00"), ymd_hms("2019-06-22 17:30:00"))) +
-      scale_color_manual(values = Icolor) 
+      scale_color_manual(values = Icolor) +
+      theme(panel.spacing.y=unit(.2, "lines"))
     
     SEATS <- Pico %>% filter(Station == "SEATS")
     M4    <- Pico %>% filter(Station == "M4")
@@ -126,15 +132,15 @@
     e0.433 <- expression("pgC" ~ cell^-1 == .433 %*% Volume^.863)
     e0.261 <- expression("pgC" ~ cell^-1 == .261 %*% Volume^.860)
 
-    p1 <- ggplot(SEATS, aes(Time, biomass, color = equation)) + 
+    # stat_summary(fun.data = 'mean_sd', geom = "errorbar", color="black") did not work;
+    p1 <- ggplot(SEATS, aes(Time, u, color = equation)) + 
       annotate("rect", xmin = Night1, xmax = Night2, ymin = -Inf, ymax = Inf, alpha = .4, fill = "gray") + 
-      geom_line(stat = "summary", fun = mean, size = .8*lwd_pt) +
+      geom_line(size = .8*lwd_pt) +
       geom_errorbar(aes(ymin = u - SD, ymax = u + SD), width=2400, size = .5*lwd_pt, color="black") +
-      #stat_summary(fun.data = 'mean_sd', geom = "errorbar", width=2400, size = .5*lwd_pt) + # did not work
-      geom_point(stat = "summary", fun = mean, size = 1.5*lwd_pt) +
+      geom_point(size = 1.5*lwd_pt) +
       scale_x_datetime(breaks = seq(ymd_hms("2019-06-20 06:00:00"), ymd_hms("2019-06-22 18:00:00"), 
                                     "6 hours"), labels = date_format("%H")) +
-      xlab("Time of day (h)") + ylab("Biomass (µg C L-1)") +
+      xlab("Time of day (local time)") + ylab("Biomass (µg C L-1)") +
       facet_rep_grid(pico~Station,scales = "free_y")+
       coord_cartesian(xlim = c(ymd_hms("2019-06-20 06:30:00"), ymd_hms("2019-06-22 07:15:00"))) +
       scale_color_manual(values = Icolor) +
@@ -142,11 +148,11 @@
             strip.text.y = element_blank()) +
       guides(color = "none")
     
-    p2 <- ggplot(M4, aes(Time, biomass, color = equation)) +
+    p2 <- ggplot(M4, aes(Time, u, color = equation)) +
       annotate("rect", xmin = Night1, xmax = Night2, ymin = -Inf, ymax = Inf, alpha = .4, fill = "gray") +
-      geom_line(stat = "summary", fun = mean, size = .8*lwd_pt) +
+      geom_line(size = .8*lwd_pt) +
       geom_errorbar(aes(ymin = u - SD, ymax = u + SD), width=2400, size = .5*lwd_pt, color="black") +
-      geom_point(stat = "summary", fun = mean, size = 1.5*lwd_pt) +
+      geom_point(size = 1.5*lwd_pt) +
       scale_x_datetime(breaks = seq(ymd_hms("2019-06-20 06:00:00"), ymd_hms("2019-06-22 18:00:00"),
                                     "6 hours"), labels = date_format("%H")) +
       xlab(NULL) +  ylab(NULL) +
@@ -160,11 +166,11 @@
             strip.text.y = element_blank()) +
       guides(color=guide_legend(nrow=2,byrow=TRUE,label.hjust = 0))
 
-    p3 <- ggplot(K11, aes(Time, biomass, color = equation)) + 
+    p3 <- ggplot(K11, aes(Time, u, color = equation)) + 
       annotate("rect", xmin = Night1, xmax = Night2, ymin = -Inf, ymax = Inf, alpha = .4, fill = "gray") +
-      geom_line(stat = "summary", fun = mean, size = .8*lwd_pt) +
+      geom_line(size = .8*lwd_pt) +
       geom_errorbar(aes(ymin = u - SD, ymax = u + SD), width=2400, size = .5*lwd_pt, color="black") +
-      geom_point(stat = "summary", fun = mean, size = 1.5*lwd_pt) +
+      geom_point(size = 1.5*lwd_pt) +
       scale_x_datetime(breaks = seq(ymd_hms("2019-06-20 06:00:00"), ymd_hms("2019-06-22 18:00:00"), 
                                     "6 hours"), labels = date_format("%H")) +
       xlab(NULL) +  ylab(NULL) +

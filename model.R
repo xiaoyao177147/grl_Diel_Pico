@@ -10,6 +10,11 @@
     #' @return Dia cell size (µm, equivalent spherical diameter, ESD)
     #' @return Biomass  (μg C L-1)
     #' 
+    FSC_Dia <- function(FSC){
+      Dia <- 10 ^ (log10(FSC) * 0.250378257 + 0.135092677)
+      return(Dia)
+    }
+    
     FSC_Abu_Biomass <- function(FSC, Abu) {
       Dia <- 10 ^ (log10(FSC) * 0.250378257 + 0.135092677)
       Vol <- 4/3*pi*((Dia)/2)^3
@@ -26,16 +31,26 @@
     # cell division occurs only during the several hours of darkness
     (peak_time <- mean(df$peak_time)) # ~ 4.5
     
-    # the input data for starting the model at 00:00 were the calculated average cell numbers and biomass
+    
+    # the median values of simulated data were the same as that of the observed data
     Sampletime <- read_csv("Data/Sampletime.csv") %>% 
       mutate(Time = ymd_hms(paste(Date0, Time0))) %>%
       select(Id, Time)
 
     Pico <- read_csv("Data/Picoauto.csv") %>% 
       left_join(Sampletime, by = "Id") %>% 
-      filter(Id %in% c("S13", "S29", "M5", "M21", "K5")) %>%
-      mutate(Pro_Biomass = FSC_Abu_Biomass(ProFSC, Pro)) 
-    median(Pico$Pro); median(Pico$Pro_Biomass);
+      drop_na(Pro) %>%
+      mutate(Pro_Dia     = FSC_Dia(ProFSC),
+             Pro_Biomass = FSC_Abu_Biomass(ProFSC, Pro))
+    median(Pico$Pro); median(Pico$Pro_Biomass); median(Pico$Pro_Dia)
+    
+    # net primary production rate (p) was the mean biomass-based net growth rate during the daytime 
+    # calculated by three methods (Figure 1c); the tibble fig3 are from Field_SCS.R
+    Rates <- fig3 %>%
+      filter(Pico == "Pro" & Para == "bio") %>% 
+      group_by(Id1) %>% 
+      summarise(u = mean(rate))
+    Rates$u[1] # 0.0415103
 
 # Start the model ---------------------------------------------------------
 
@@ -47,10 +62,11 @@
     #' @param p  net primary production rate per hour
     #' @param r  respiration rate in dark per hour
     #' @param d  rate of cell division per hour
-    g <- 0.01821136 # Grazing occurs at a constant rate throughout the period of 24 hours.
-    p <- 0.048778
-    r <- 0.01227758
-    d <- 1/24
+    
+    p <- 0.0415103
+    r <- p/4
+    g <- 0.0155383 # Grazing occurs at a constant rate throughout the period of 24 hours.
+    d <- 0.03554575
     # The simulation was conducted on 5-minute time steps for 24 h.
     p <- c(rep(0, 6*12), rep(p, 12*12), rep(0, 6*12)); # Net primary production occurs at a constant rate during the day.
     r <- c(rep(r, 6*12), rep(0, 12*12), rep(r, 6*12)); # Respiration occurs at a constant rate throughout the night.
@@ -61,8 +77,8 @@
     cc <- b0
     b  <- b0
     # the input data for starting the model at 00:00
-    cn[1] <- 178
-    b[1]  <- 2.46
+    cn[1] <- 167.2394
+    b[1]  <- 2.580935
     cc[1] <- b[1] / cn[1]
     
     for (k in 2:289){
@@ -77,9 +93,11 @@
     cn[289]/cn[1];
     cc[289]/cc[1];
     b[289]/b[1];
-    max(cn);min(cn);max(cn)-min(cn);
-    max(cs);min(cs);
-    max(b) ;min(b);
+    median(cn);median(b);median(cs)
+    
+    #max(cn);min(cn);max(cn)-min(cn);
+    #max(cs);min(cs);
+    #max(b) ;min(b);
     
     # draw plots
     dat1 <- tibble(t = seq(0,24,1/12),
@@ -215,7 +233,7 @@
       geom_line(aes(y = cn, color = "y1"), size = lwd_pt) +
       #geom_point(aes(y = cn, color = "y1"), size = .7) +
       scale_y_continuous(sec.axis = sec_axis(trans = ~ .* k2 + b2, name = "Cell size (mean ESD, µm)\n",
-                                             breaks = c(.42,.45,.48,.51)),
+                                             breaks = c(.45,.47,.49,.51)),
                          breaks = breaks_pretty(4)) +
       geom_line( aes(y = (cs - b2) / k2, color = "y2"), size = lwd_pt) +
       #geom_point(aes(y = (cs - b2) / k2, color = "y2"), size = .7) +
@@ -223,7 +241,7 @@
       #geom_point(aes(y = (b  - b3) / k3, color = "y3"), size = .7) +
       annotate(geom='segment',y=-Inf,yend=-Inf,x=as.POSIXct(-Inf),xend=as.POSIXct(Inf), size = .7*lwd_pt) +
       annotate(geom='segment',y= Inf,yend= Inf,x=as.POSIXct(-Inf),xend=as.POSIXct(Inf), size = .7*lwd_pt) +
-      scale_x_continuous(breaks = c(0,2,4,6,8,10,12,14,16,18,20,22,24), expand = expansion(mult = .03)) +
+      scale_x_continuous(breaks = seq(0,24,3), expand = expansion(mult = .03)) +
       scale_color_manual(values = c("y1" = "#1fb050", "y2" = "#ee7e32", "y3" = "#6f3996")) +
       guides(colour = "none") +
       labs(x = NULL, y = "Abundance (103 cells mL-1)", title = "Constant grazing") +
@@ -231,7 +249,7 @@
     
     plot_1b <- ggplot(dat1, aes(x = t, y = b)) +
       geom_point() +
-      scale_y_continuous(breaks = breaks_pretty(4)) +
+      scale_y_continuous(breaks = c(2.3,2.5,2.7,2.9)) +
       xlab(NULL) + ylab("Biomass (µg C L-1)") +
       Theme2; # plot_1b
     g1 <- plus_y_axis(plot_1a, plot_1b)
@@ -244,8 +262,8 @@
     cc2 <- b0
     b2  <- b0
     # the input data for starting the model at 00:00
-    cn2[1] <- 178
-    b2[1]  <- 2.46
+    cn2[1] <- 167.2394
+    b2[1]  <- 2.580935
     cc2[1] <- b2[1] / cn2[1]
     
     for (k in 2:289){
@@ -282,23 +300,22 @@
       geom_line(aes(y = cn, color = "y1"), size = lwd_pt, linetype = 2) +
       #geom_point(aes(y = cn, color = "y1"), pch = 15, size = .7) +
       scale_y_continuous(sec.axis = sec_axis(trans = ~ .* k2 + b2, name = "Cell size (mean ESD, µm)\n",
-                                             breaks = c(.42,.45,.48,.51)),
-                         breaks = c(180,210,240,270)) +
+                                             breaks = c(.45,.47,.49,.51))) +
       geom_line( aes(y = (cs - b2) / k2, color = "y2"), size = lwd_pt, linetype = 2) +
       #geom_point(aes(y = (cs - b2) / k2, color = "y2"), pch = 15, size = .7) +
       geom_line( aes(y = (b  - b3) / k3, color = "y3"), size = lwd_pt, linetype = 2) +
       #geom_point(aes(y = (b  - b3) / k3, color = "y3"), pch = 15, size = .7) +
       annotate(geom='segment',y=-Inf,yend=-Inf,x=as.POSIXct(-Inf),xend=as.POSIXct(Inf), size = .7*lwd_pt) +
       annotate(geom='segment',y= Inf,yend= Inf,x=as.POSIXct(-Inf),xend=as.POSIXct(Inf), size = .7*lwd_pt) +
-      scale_x_continuous(breaks = c(0,2,4,6,8,10,12,14,16,18,20,22,24), expand = expansion(mult = .03)) +
+      scale_x_continuous(breaks = seq(0,24,3), expand = expansion(mult = .03)) +
       scale_color_manual(values = c("y1" = "#1fb050", "y2" = "#ee7e32", "y3" = "#6f3996")) +
       guides(colour = "none") +
-      labs(x = 'Time of day ("standard day")', y = "Abundance (103 cells mL-1)", title = "Grazing = 0") +
+      labs(x = "Time of day (normalized)", y = "Abundance (103 cells mL-1)", title = "Grazing = 0") +
       Theme1; #plot_2a
     
     plot_2b <- ggplot(dat2, aes(x = t, y = b)) +
       geom_point() +
-      xlab('Time of day ("standard day")') + ylab("Biomass (µg C L-1)") +
+      xlab("Time of day (normalized)") + ylab("Biomass (µg C L-1)") +
       Theme2; #plot_2b
     g2 <- plus_y_axis(plot_2a, plot_2b)
     #grid.newpage(); grid.draw(g2)

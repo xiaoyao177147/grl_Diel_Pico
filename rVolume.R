@@ -108,7 +108,7 @@
     
     
     field <- result %>% 
-      filter(r2 > .37) %>% 
+      filter(pico != "Peuk_Biomass") %>%
       separate(pico, c("pico", "para")) %>% 
       mutate(peak      = Mesor + amplitude,
              trough    = Mesor - amplitude,
@@ -121,12 +121,12 @@
       summarise(m.rIncrease  = round(mean(rIncrease) * 100, 1),
                 sd.rIncrease = round(sd(rIncrease) * 100, 1))
     
-    # biovolume daily percent increase
-    out3 <- field %>% 
-      drop_na(rVol) %>% 
-      group_by(pico) %>% 
-      summarise(m.rVol  = round(mean(rVol) * 100, 1),
-                sd.rVol = round(sd(rVol) * 100, 1))
+    # # biovolume daily percent increase
+    # out3 <- field %>% 
+    #   drop_na(rVol) %>% 
+    #   group_by(pico) %>% 
+    #   summarise(m.rVol  = round(mean(rVol) * 100, 1),
+    #             sd.rVol = round(sd(rVol) * 100, 1))
   
 
     # the culture diel increase

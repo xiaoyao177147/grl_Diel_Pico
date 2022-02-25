@@ -32,12 +32,13 @@
       gather(Para, Value, hBac, Virus) %>% 
       mutate(Station = factor(Station,levels = c("SEATS","M4","K11")))
     lab.p   <- c(hBac = "Bacteria",Virus = "Virus")
-
-    # use station SEATS for night-time: 20190620-21
-    Night1 <- ymd_hms(c("2019-06-19 18:53:33", "2019-06-20 18:53:47",
-                        "2019-06-21 18:54:01", "2019-06-22 18:54:14"));
-    Night2 <- ymd_hms(c("2019-06-20 05:41:11", "2019-06-21 05:41:24",
-                        "2019-06-22 05:41:37", "2019-06-23 05:41:51"));
+    
+    library(suncalc) # Get Sunlight times # use station SEATS for night-time
+    # The sampling area is located in time zone 8
+    Sun <- getSunlightTimes(as.Date(c("2019-06-19", "2019-06-20", "2019-06-21", "2019-06-22", "2019-06-23")),
+                            keep = c("sunrise", "sunset"), lat = 18, lon = 116)
+    Night1 <- Sun$sunset[-5] + 8 * 3600
+    Night2 <- Sun$sunrise[-1]+ 8 * 3600
     
     Icolor <- c("#ee7e32","#1fb050","#6f3996") 
     lwd_pt <- 1/(.pt*72.27/96) 
@@ -69,7 +70,7 @@
       geom_point( stat = "summary", fun = mean,  size =1.5*lwd_pt) +
       scale_x_datetime(breaks = seq(ymd_hms("2019-06-20 06:00:00"), ymd_hms("2019-06-22 18:00:00"),
                                     "6 hours"), labels = date_format("%H")) +
-      xlab("Time of day (h)") + ylab(NULL) + ggtitle("Biomass (µg C L-1)") +
+      xlab("Time of day (local time)") + ylab(NULL) + ggtitle("Biomass (µg C L-1)") +
       facet_rep_grid(Para~.,scales = "free_y",labeller=labeller(Para = as_labeller(lab.p))) +
       coord_cartesian(xlim = c(ymd_hms("2019-06-20 06:50:00"), ymd_hms("2019-06-22 17:30:00"))) +
       scale_color_manual(values = Icolor)  #pdf 6.8 * 3.6
