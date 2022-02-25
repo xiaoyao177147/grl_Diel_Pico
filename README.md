@@ -12,9 +12,9 @@
 
 * bac_virus.R: R script for Fig. S4 (Diel variation of biomass of heterotrophic bacteria and viruses) of the paper;
 
-* rVolume.R: R script for Fig. S11 (Comparison of daily percent increase in biovolume in culture and SCS) of the paper;
+* rVolume.R: R script for Fig. S12 (Comparison of daily percent increase in biovolume in culture and SCS) of the paper;
 
-* Four_carbon_conversion.R: R script for Fig. S12 (Diel variation of picophytoplankton in biomass derived from different volume-to-carbon conversion methods) of the paper;
+* Four_carbon_conversion.R: R script for Fig. S13 (Diel variation of picophytoplankton in biomass derived from different volume-to-carbon conversion methods) of the paper;
 
 ## Data
 
