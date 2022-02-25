@@ -31,7 +31,7 @@
       return(Biomass)
     }
     
-    #' Calculate the nearest Sunrise and Sunset Times for each time point  
+    #' Calculate the corresponding Sunrise and Sunset Times for each time point  
     #' 
     #' @author Changlin Li
     #' 
@@ -49,19 +49,19 @@
       # https://stackoverflow.com/questions/50495809/r-if-else-in-function
       sunrise <- sapply(t, function(el) if(el > ts$sunrise[1] & el <= ts$sunset[1]){ 
         as.character(ts$sunrise[1])
-      } else if (el > ts$sunset[1] & el <= ts$sunset[2]) {
-        as.character(ts$sunrise[2])
-      } else if (el > ts$sunset[2] & el <= ts$sunset[3]) {
-        as.character(ts$sunrise[3])
-      } else { NA})
+        } else if (el > ts$sunset[1] & el <= ts$sunset[2]) {
+          as.character(ts$sunrise[2])
+          } else if (el > ts$sunset[2] & el <= ts$sunset[3]) {
+            as.character(ts$sunrise[3])
+            } else { NA})
       
       sunset <- sapply(t, function(el) if(el > ts$sunrise[1] & el <= ts$sunrise[2]){ 
         as.character(ts$sunset[1])
-      } else if (el > ts$sunrise[2] & el <= ts$sunrise[3]) {
-        as.character(ts$sunset[2])
-      } else if (el > ts$sunrise[3] & el <= ts$sunset[3]) {
-        as.character(ts$sunset[3])
-      } else { NA})
+        } else if (el > ts$sunrise[2] & el <= ts$sunrise[3]) {
+          as.character(ts$sunset[2])
+          } else if (el > ts$sunrise[3] & el <= ts$sunset[3]) {
+            as.character(ts$sunset[3])
+            } else { NA})
       data.frame(sunrise, sunset)
     }
     
@@ -111,17 +111,17 @@
       mutate(Sun  = pmap(list(t = Time, Lat = lat, Lon = lon), rise_set)) %>% 
       unnest(Sun) %>% 
       select(-time)
+
     
-    
-    # normalized time
+    # normalization
     Sun <- Sun %>%
       mutate(sunrise= ymd_hms(sunrise),
-             sunset = ymd_hms(sunset),
-             id     = if_else(sunrise < sunset, 1, -1)) %>% # 1: day; -1: night
+             sunset = ymd_hms(sunset)) %>%
       mutate(Stime  = time_length(interval(sunrise, Time),  "second"), 
-             Sdur   = time_length(interval(sunrise, sunset),"second"),
-             time_n = date(sunrise) + seconds(6 + Stime/Sdur*12* id) * 3600 + days(1)) %>%
+             Sdur   = abs(time_length(interval(sunrise, sunset),"second")),
+             time_n = date(sunrise) + seconds(6 + Stime/Sdur*12) * 3600 + days(1)) %>%
       select(Station, Id, time_n)
+    
     
     # left_join two tibble
     Sun %>% count(Id) %>% filter(n > 1)

@@ -11,7 +11,7 @@
 #    
 # 2. Calculate sunrise, sunset times; 
 #     
-# 3. Time normalization: adjusted to a “standard day” with sunrise at 06:00 and sunset at 18:00
+# 3. Time normalization: a normalized time scale in which sunrise and sunset were fixed at 06:00 and 18:00
 #    
 ##
 
@@ -108,7 +108,7 @@
     dat0$lon [dat0$cruise == "TN248"   & dat0$time < ymd_hms("2010-05-04 23:13:00")]  <- -136.3091
     
     
-    #' Calculate the nearest Sunrise and Sunset Times for each time point  
+    #' Calculate the corresponding Sunrise and Sunset Times for each time point  
     #' 
     #' @author Changlin Li
     #' 
@@ -149,14 +149,13 @@
       mutate(Sun  = pmap(list(t = time, Lat = lat, Lon = lon), rise_set)) %>% 
       unnest(Sun)
     
-    # normalized time
+    # normalization
     Sun1 <- Sun %>%
       mutate(sunrise= ymd_hms(sunrise),
-             sunset = ymd_hms(sunset),
-             id     = if_else(sunrise < sunset, 1, -1)) %>% # 1: day; -1: night
+             sunset = ymd_hms(sunset)) %>%
       mutate(Stime  = time_length(interval(sunrise, time),   "second"), 
-             Sdur   = time_length(interval(sunrise, sunset), "second"),
-             time_n = date(sunrise) + seconds(6 + Stime/Sdur*12* id) * 3600) %>% 
+             Sdur   = abs(time_length(interval(sunrise, sunset), "second")),
+             time_n = date(sunrise) + seconds(6 + Stime/Sdur*12) * 3600) %>% 
       arrange(cruise, time)  #%>%
     #   group_by(cruise) %>% 
     #   mutate(diff_time   = as.numeric(difftime(time,   shift(time,   fill = NA), units = "mins")),
@@ -165,10 +164,11 @@
     # boxplot(Sun1_n$diff)
     
     
-    # # check
+    # check
     # check <- Sun1 %>%
     #   select(cruise, sunrise, sunset, id, time,time_n,Sdur) %>%
-    #   mutate(Sdur = round(Sdur / 3600, 2),
+    #   mutate(id   = if_else(sunrise < sunset, 1, -1), # 1: day; -1: night
+    #          Sdur = round(Sdur / 3600, 2),
     #          lag  = time_length(interval(time, time_n),"hour"),
     #          lag  = round(lag, 2)) %>%
     #   arrange(cruise, time)

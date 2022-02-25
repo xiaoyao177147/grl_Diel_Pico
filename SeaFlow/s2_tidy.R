@@ -579,22 +579,22 @@
     dat4 <- dat3 %>% 
       arrange(cruise, para, time_n) %>% 
       group_by(cruise, para) %>% 
-      mutate(Final = rollmedian(time_n, final, 25))
+      mutate(Final = rollmedian(time_n, final, 25)) %>%
+      ungroup()
     
     dat4 %>% ungroup() %>%  count(time_n) %>% filter(n > 9)
     # A tibble: 0 x 2
     
     # Data resolution reduction: to one value per 0.5h
-    dat4 <- dat4 %>% 
+    dat_seaflow <- dat4 %>% 
       mutate(time_n = round_date(time_n, "30 minutes")) %>% 
       group_by(cruise, para, time_n) %>%
       summarise_at(vars(Final), median) %>% 
       ungroup() %>% 
       spread(para, Final)
-    
 
     # # draw plots
-    # dat_p <- dat4 %>%
+    # dat_p <- dat_seaflow %>%
     #   pivot_longer(cols = Abu_Euk:Dia_Syn,
     #                names_to = c("para", ".value"),
     #                names_pattern = "(.*)_(.*)")
@@ -611,8 +611,6 @@
     #   grid.draw(combined)
     #   dev.off()
     # }
-    
-    
-    write_csv(dat4,"Data/dat_seaflow.csv")  
+    write_csv(dat_seaflow,"Data/dat_seaflow.csv")  
   
   

@@ -1,17 +1,17 @@
 #### The third step of data analysis of SeaFlow data v1.3 ####
 #
 # Summarize the results and draw plots.
+# 0. Data cleaning: (v) The diel pattern of cell size of cruise KOK1604/KOK1515 is different with others, 
+#               the raw data is wrong?
+#               Email to Francois Ribalet (the SeaFlow dataset maintainer), who answer:
+#               "It is possible that the time zone for this cruise (KOK1604) was not GMT like we assumed, 
+#               we will investigate." The data examination results have not yet been returned. 
 #
 # 1. Plot: average half-hourly values
 #
-# 2. Cosinor analysis: 
-#            (1) set the r2 value threshold at 0.36; 
-#            (2) The diel pattern of cell size of cruise *KOK1604*/*KOK1515* is different with others, the raw data is wrong?
-#                Email to Francois Ribalet (The SeaFlow dataset Maintainer), 
-#                "Problem 1: It is possible that the time zone for this cruise (KOK1604) was not GMT like we assumed, 
-#                we will investigate." The examination results have not yet been returned. 
+# 2. Cosinor analysis: set the r2 value threshold at 0.36; 
 #         
-# 2. Summarize and plot. 
+# 3. Summarize and plot. 
 #
 ##
     
@@ -51,15 +51,18 @@
 # Draw mean + sd for half-hourly measurements -------------------------------
     # transform the SCS2019 data
     dat_SCS1 <- dat_SCS %>%
-      mutate(time_n = round_date(time_n, "30 minutes")) %>%
+      mutate(time_n = round_date(time_n, "30 minutes"),
+             tday = date(time_n)) %>%
       group_by(cruise) %>%
       mutate(t  = time_length(interval(date(min(time_n)), time_n), "hour")) %>%
       ungroup() %>%
-      select(-value, -mesor) %>% 
+      select(-value, -mesor, -Id1) %>% 
       rename(value = final)
     
     dat4 <- dat3 %>% 
       bind_rows(dat_SCS1) %>% 
+      filter(cruise != "KOK1604") %>% 
+      filter(cruise != "KOK1515") %>%
       mutate(t1 = t %% 24) %>% 
       drop_na(value) %>% 
       group_by(t1, para) %>% 
@@ -96,7 +99,7 @@
                                     Pico = as_labeller(lab.b1))) +
       scale_x_continuous(breaks = c(0,6,12,18,24), expand = expansion(mult = .03)) +
       scale_y_continuous(breaks = breaks_pretty(3)) +
-      ylab(NULL) + xlab('Time of day ("standard day")') +
+      ylab(NULL) + xlab("Time of day (normalized)") +
       scale_color_manual(values = c("#1fb050","#1471b8","#ee7e32")) +
       guides(color = "none") +
       theme(plot.title = element_text(face = "bold", hjust = 0.5),
@@ -115,6 +118,67 @@
             panel.grid =element_blank(),
             plot.margin = unit(c(5,6,0,6), "pt"));p1
     # ggsave(filename = paste0("D:/Demo/mesor.pdf"),  width = 7.41, height = 4.8)
+    
+
+# Figure S8 ----------------------------------------------------------------
+    dat5 <- dat3 %>% 
+      bind_rows(dat_SCS1) %>% 
+      filter(cruise != "KOK1604") %>% 
+      filter(cruise != "KOK1515") %>%
+      mutate(t1 = t %% 24) %>% 
+      drop_na(value)
+    
+    dat5_1 <- dat5 %>% 
+      filter(t1 == 0) %>% 
+      mutate(t1   = 24,
+             tday = tday - days(1))
+    
+    dat5 <- dat5 %>% 
+      bind_rows(dat5_1) %>% 
+      separate(para, c("Para", "Pico")) %>% 
+      mutate(Pico = factor(Pico, levels = c("Pro","Syn","Euk")),
+             Para = factor(Para, levels = c("Abu","Dia","Bio")),
+             Id   = str_c(cruise, tday, sep = "_"))
+    n1 = length(unique(dat5$Id)) 
+    # all days are 250; code line 134 adds one day to the number of days of cruise KOK1606
+    
+    
+    p2 <- ggplot() +
+      annotate("rect", xmin = -Inf, xmax = 6, ymin = -Inf, ymax = Inf, alpha = .4, fill = "gray") +
+      annotate("rect", xmin = 18, xmax = Inf, ymin = -Inf, ymax = Inf, alpha = .4, fill = "gray") +
+      geom_line(data = dat5, aes(t1, value, color = Id), size = .8*lwd_pt, alpha = 0.15) +
+      #geom_errorbar(data = dat4, aes(x = t1, y = u, ymin = u-SD, ymax = u+SD), width = 0, size = .5*lwd_pt, alpha = .5) +
+      geom_point(data = dat4, aes(x = t1, y = u, color = Pico), size = 1*lwd_pt) +
+      geom_line (data = dat4, aes(x = t1, y = u, color = Pico), size =  .8*lwd_pt) +
+      facet_grid2(vars(Pico), vars(Para),
+                  scales = "free_y", independent = "y", switch = "y",
+                  axes = "all", remove_labels = "x",
+                  labeller=labeller(Para = as_labeller(lab.p),
+                                    Pico = as_labeller(lab.b1))) +
+      scale_x_continuous(breaks = c(0,6,12,18,24), expand = expansion(mult = .03)) +
+      scale_y_continuous(breaks = breaks_pretty(4)) +
+      ylab(NULL) + xlab("Time of day (normalized)") +
+      scale_color_manual(values = c(rep("black", n1), "#1fb050","#1471b8","#ee7e32"),
+                         breaks = c(unique(dat5$Id), "Pro","Syn","Euk")) +
+      guides(color = "none") +
+      theme(plot.title = element_text(face = "bold", hjust = 0.5),
+            panel.border = element_rect(fill = NA, colour = "black", size = rel(2)),
+            axis.text  = element_text(colour = "black"),
+            axis.ticks = element_line(colour = "black"),
+            axis.title = element_text(size = rel(0.9)),
+            strip.text = element_text(size = rel(.9)),
+            strip.text.x = element_text(face = "bold"),
+            strip.background = element_rect(fill = "transparent", size = rel(1.5)),
+            strip.background.y = element_rect(colour = NA),
+            strip.placement.y = "outside",
+            plot.background  = element_rect(colour = NA),
+            panel.spacing.x=unit(.5, "lines"),
+            panel.spacing.y=unit(.45, "lines"),
+            panel.grid =element_blank(),
+            plot.margin = unit(c(5,6,0,6), "pt"));p2
+    
+    nn <- length(list.files("D:/Demo/1/", pattern=".pdf"))
+    ggsave(filename = paste0("D:/Demo/1/", "plot_", nn, ".pdf"),  width = 7, height = 5.5)
     
 # analysis the data at "daily" level ----------------------------------------------
 
@@ -275,7 +339,7 @@
     }
     #write_csv(result,"Data/result.csv")
 
-# summarise the resule and draw plots ---------------------------------------------------
+# summarise the result and draw plots ---------------------------------------------------
     
     #library(lubridate); library(scales); library(tidyverse); 
     #setwd("./SeaFlow")
