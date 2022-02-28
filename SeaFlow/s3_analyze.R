@@ -143,7 +143,7 @@
     # all days are 250; code line 134 adds one day to the number of days of cruise KOK1606
     
     
-    p2 <- ggplot() +
+    p3 <- ggplot() +
       annotate("rect", xmin = -Inf, xmax = 6, ymin = -Inf, ymax = Inf, alpha = .4, fill = "gray") +
       annotate("rect", xmin = 18, xmax = Inf, ymin = -Inf, ymax = Inf, alpha = .4, fill = "gray") +
       geom_line(data = dat5, aes(t1, value, color = Id), size = .8*lwd_pt, alpha = 0.15) +
@@ -175,7 +175,7 @@
             panel.spacing.x=unit(.5, "lines"),
             panel.spacing.y=unit(.45, "lines"),
             panel.grid =element_blank(),
-            plot.margin = unit(c(5,6,0,6), "pt"));p2
+            plot.margin = unit(c(5,6,0,6), "pt"));p3
     
     nn <- length(list.files("D:/Demo/1/", pattern=".pdf"))
     ggsave(filename = paste0("D:/Demo/1/", "plot_", nn, ".pdf"),  width = 7, height = 5.5)
